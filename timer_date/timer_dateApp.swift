@@ -8,10 +8,11 @@
 import SwiftUI
 
 @main
-struct timer_dateApp: App {
+struct TimerDateApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear { makeWindowFloating() }   // 追加
         }
     }
 }
