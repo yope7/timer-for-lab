@@ -8,9 +8,11 @@ struct ContentView: View {
     @State private var secondsInput = ""
     @State private var remainingSeconds: Int? = nil
     @State private var totalSeconds: Int = 0
+    @State private var isTimerRunning = false
+    @State private var startTime: Date? = nil
 
-    // 1 Hz でカウントダウン
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    // より高頻度で更新（0.1秒間隔）
+    let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
     @State private var player: AVAudioPlayer?
 
     var body: some View {
@@ -38,7 +40,7 @@ struct ContentView: View {
                     .trim(from: 0, to: progress)
                     .stroke(Color.red.opacity(0.8),
                             style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                    .rotationEffect(.degrees(-90)) // 12 時開始
+                    .rotationEffect(.degrees(-90)) // 12 時開始
 
                 // 残り時間
                 Text(remainingSecondsLabel)
@@ -57,7 +59,11 @@ struct ContentView: View {
             .padding(.top, 8)
         }
         .padding(24)
-        .onReceive(timer) { _ in tick() }
+        .onReceive(timer) { _ in
+            if isTimerRunning {
+                updateTimer()
+            }
+        }
     }
 
     // MARK: - タイマー制御
@@ -67,20 +73,29 @@ struct ContentView: View {
             guard total > 0 else { return }
             totalSeconds = total
             remainingSeconds = total
+            startTime = Date()  // 開始時刻を記録
+            isTimerRunning = true
         } else {
             remainingSeconds = nil
             totalSeconds = 0
+            startTime = nil
+            isTimerRunning = false
         }
     }
 
-    private func tick() {
-        guard var sec = remainingSeconds else { return }
-        sec -= 1
-        if sec <= 0 {
+    private func updateTimer() {
+        guard let start = startTime, let total = remainingSeconds else { return }
+        
+        // 経過時間を計算
+        let elapsed = Int(Date().timeIntervalSince(start))
+        let remaining = total - elapsed
+        
+        if remaining <= 0 {
             remainingSeconds = nil
+            isTimerRunning = false
             playSound()
         } else {
-            remainingSeconds = sec
+            remainingSeconds = remaining
         }
     }
 
