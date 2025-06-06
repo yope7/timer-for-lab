@@ -96,8 +96,14 @@ struct ContentView: View {
 
     // MARK: - 表示用プロパティ
     private var remainingSecondsLabel: String {
-        guard let sec = remainingSeconds else { return "--:--" }
-        return String(format: "%02d:%02d", sec / 60, sec % 60)
+        if let sec = remainingSeconds {
+            return String(format: "%02d:%02d", sec / 60, sec % 60)
+        } else if totalSeconds > 0 {
+            // タイマー終了後は 00:00 を表示する
+            return "00:00"
+        } else {
+            return "--:--"
+        }
     }
 
     private var progress: Double {
