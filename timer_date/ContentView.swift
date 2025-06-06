@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import AppKit
 
 /// 円形タイマー表示を備えたメインビュー
 struct ContentView: View {
@@ -85,13 +86,17 @@ struct ContentView: View {
 
     // MARK: - サウンド再生
     private func playSound() {
-        guard let url = Bundle.main.url(forResource: "alarm", withExtension: "wav") else { return }
-        do {
-            player = try AVAudioPlayer(contentsOf: url)
-            player?.play()
-        } catch {
-            print("Sound error:", error)
+        if let url = Bundle.main.url(forResource: "alarm", withExtension: "wav") {
+            do {
+                player = try AVAudioPlayer(contentsOf: url)
+                player?.play()
+                return
+            } catch {
+                print("Sound error:", error)
+            }
         }
+        // alarm.wav が見つからない場合はシステムのビープ音を鳴らす
+        NSSound.beep()
     }
 
     // MARK: - 表示用プロパティ
