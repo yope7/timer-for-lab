@@ -1,6 +1,5 @@
 import SwiftUI
 import AVFoundation
-import AppKit
 
 /// 円形タイマー表示を備えたメインビュー
 struct ContentView: View {
@@ -8,11 +7,9 @@ struct ContentView: View {
     @State private var secondsInput = ""
     @State private var remainingSeconds: Int? = nil
     @State private var totalSeconds: Int = 0
-    @State private var isTimerRunning = false
-    @State private var startTime: Date? = nil
 
-    // より高頻度で更新（0.1秒間隔）
-    let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+    // 1 Hz でカウントダウン
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @State private var player: AVAudioPlayer?
 
     var body: some View {
@@ -40,9 +37,9 @@ struct ContentView: View {
                     .trim(from: 0, to: progress)
                     .stroke(Color.red.opacity(0.8),
                             style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                    .rotationEffect(.degrees(-90)) // 12 時開始
+                    .rotationEffect(.degrees(-90)) // 12 時開始
 
-                // 残り時間
+                // 残り時間のテキスト
                 Text(remainingSecondsLabel)
                     .font(.title.monospacedDigit())
                     .bold()
@@ -59,11 +56,7 @@ struct ContentView: View {
             .padding(.top, 8)
         }
         .padding(24)
-        .onReceive(timer) { _ in
-            if isTimerRunning {
-                updateTimer()
-            }
-        }
+        .onReceive(timer) { _ in tick() }
     }
 
     // MARK: - タイマー制御
@@ -73,57 +66,48 @@ struct ContentView: View {
             guard total > 0 else { return }
             totalSeconds = total
             remainingSeconds = total
-            startTime = Date()  // 開始時刻を記録
-            isTimerRunning = true
         } else {
             remainingSeconds = nil
             totalSeconds = 0
-            startTime = nil
-            isTimerRunning = false
         }
     }
 
-    private func updateTimer() {
-        guard let start = startTime, let total = remainingSeconds else { return }
-        
-        // 経過時間を計算
-        let elapsed = Int(Date().timeIntervalSince(start))
-        let remaining = total - elapsed
-        
-        if remaining <= 0 {
+    private func tick() {
+        guard var sec = remainingSeconds else { return }
+        sec -= 1
+        if sec <= 0 {
             remainingSeconds = nil
-            isTimerRunning = false
             playSound()
         } else {
-            remainingSeconds = remaining
+            remainingSeconds = sec
         }
     }
 
     // MARK: - サウンド再生
     private func playSound() {
-        if let url = Bundle.main.url(forResource: "alarm", withExtension: "wav") {
-            do {
-                player = try AVAudioPlayer(contentsOf: url)
-                player?.play()
-                return
-            } catch {
-                print("Sound error:", error)
-            }
+        guard let path = Bundle.main.path(forResource: "beep", ofType: "mp3") else {
+            NSSound.beep()
+            return
         }
-        // alarm.wav が見つからない場合はシステムのビープ音を鳴らす
-        NSSound.beep()
+        
+        let url = URL(fileURLWithPath: path)
+        
+        do {
+            player = try AVAudioPlayer(contentsOf: url)
+            player?.prepareToPlay()
+            if player?.play() == true {
+                return
+            }
+            NSSound.beep()
+        } catch {
+            NSSound.beep()
+        }
     }
 
     // MARK: - 表示用プロパティ
     private var remainingSecondsLabel: String {
-        if let sec = remainingSeconds {
-            return String(format: "%02d:%02d", sec / 60, sec % 60)
-        } else if totalSeconds > 0 {
-            // タイマー終了後は 00:00 を表示する
-            return "00:00"
-        } else {
-            return "--:--"
-        }
+        guard let sec = remainingSeconds else { return "--:--" }
+        return String(format: "%02d:%02d", sec / 60, sec % 60)
     }
 
     private var progress: Double {
