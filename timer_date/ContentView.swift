@@ -39,7 +39,7 @@ struct ContentView: View {
                             style: StrokeStyle(lineWidth: 12, lineCap: .round))
                     .rotationEffect(.degrees(-90)) // 12 時開始
 
-                // 残り時間のテキスト
+                // 残り時間
                 Text(remainingSecondsLabel)
                     .font(.title.monospacedDigit())
                     .bold()
